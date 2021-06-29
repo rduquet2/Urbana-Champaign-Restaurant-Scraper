@@ -1,6 +1,7 @@
 from time import sleep
 from requests import get
 from selenium import webdriver
+import selenium
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -28,8 +29,12 @@ def get_miscellaneous(index: int, driver):
     elif cost == "$$":
         price = "moderately priced"
     elif cost == "$$$":
-        price = "expensive"    
-    return num_reviews, price, restaurant_type
+        price = "expensive"
+    service_options = get_line_with_word("Service", driver)
+    address = get_line_with_word("Address", driver)
+    menu = get_line_with_word("Menu", driver)
+    phone_number = get_line_with_word("Phone", driver)        
+    return num_reviews, price, restaurant_type, service_options, address, menu, phone_number
     
 def get_reviews(index: int, driver):
     driver.find_elements_by_class_name("dbg0pd")[index].click()
@@ -61,6 +66,14 @@ def replace_all(text, dic):
 def split_on_letter(s):
     match = re.compile("[^\W\d]").search(s)
     return [s[:match.start()], s[match.start():]]
+
+# gets lines in the pop out screen for info such as service options, address, etc.
+def get_line_with_word(word: str, driver):
+    lines = driver.find_elements_by_class_name("ifM9O")[0].text.split("\n")
+    # iterate over lines, and print out line numbers which contain the word of interest.
+    for i, line in enumerate(lines):
+        if word in line:
+            return driver.find_elements_by_class_name("ifM9O")[0].text.splitlines()[i]
 
 if __name__ == "__main__":
     driver = webdriver.Chrome(ChromeDriverManager().install())
