@@ -1,53 +1,49 @@
 from time import sleep
 from requests import get
 from selenium import webdriver
-import selenium
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from PIL import Image
 import re
+import os
 
 URL = "https://tinyurl.com/552ebk3y"
 
-def get_restaurant_info(index: int, driver):
+def get_restaurant_name_and_rating(index: int, driver):
     name = driver.find_elements_by_class_name("dbg0pd")[index].text
-    rating = driver.find_elements_by_xpath("//span[contains(@class, 'BTtC6e')]")[index].text
-    description = driver.find_elements_by_class_name("rllt__wrapped")[index].text
-    return name, rating, description
+    rating = driver.find_elements_by_xpath("//span[contains(@class, 'BTtC6e')]")[index].text + " / 5.0"   
+    return name, rating
 
 def get_miscellaneous(index: int, driver):
     driver.find_elements_by_class_name("dbg0pd")[index].click()
     sleep(3)
     num_reviews = driver.find_elements_by_class_name("Ob2kfd")[0].text.splitlines()[1]
+    reviews = get_reviews(driver)
+    image_urls = get_restaurant_images_urls(driver)
     # uses the split_on_letter function to find the cost (which is a set of $ - nonalphanumeric) and the restaurant_type (which are letters)
     cost = split_on_letter(driver.find_elements_by_class_name("TLYLSe")[1].text)[0]
     restaurant_type = split_on_letter(driver.find_elements_by_class_name("TLYLSe")[1].text)[1]
-    # inexpensive ($), moderately priced ($$), or expensive ($$$)
     if cost == "$":
-        price = "inexpensive"
+        price = "Inexpensive"
     elif cost == "$$":
-        price = "moderately priced"
+        price = "Moderately priced"
     elif cost == "$$$":
-        price = "expensive"
+        price = "Expensive"
+    else:
+        price = "Not found"    
     service_options = get_line_with_word("Service", driver)
     address = get_line_with_word("Address", driver)
     menu = get_line_with_word("Menu", driver)
     phone_number = get_line_with_word("Phone", driver)        
-    return num_reviews, price, restaurant_type, service_options, address, menu, phone_number
+    return num_reviews, reviews, image_urls, price, restaurant_type, service_options, address, menu, phone_number
     
-def get_reviews(index: int, driver):
-    driver.find_elements_by_class_name("dbg0pd")[index].click()
-    sleep(3)
+def get_reviews(driver):
     restaurant_reviews = []
     for review_index in range(3):
-        review = driver.find_elements_by_class_name("b4vunb")[review_index]
+        review = driver.find_elements_by_class_name("b4vunb")[review_index].text
         restaurant_reviews.append(review)
     return restaurant_reviews    
 
-def get_restaurant_images_urls(index: int, driver):
-    driver.find_elements_by_class_name("dbg0pd")[index].click()
-    sleep(3)
+def get_restaurant_images_urls(driver):
     restaurant_images = []
     for image_index in range(6):
         image = driver.find_elements_by_class_name("vwrQge")[image_index].get_attribute("style")
@@ -78,3 +74,21 @@ def get_line_with_word(word: str, driver):
 if __name__ == "__main__":
     driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get(URL)
+
+    for restaurant_index in range(2):
+        name, rating = get_restaurant_name_and_rating(restaurant_index, driver)
+        num_reviews, reviews, image_urls, price, restaurant_type, service_options, address, menu, phone_number = get_miscellaneous(restaurant_index, driver)
+        restaurant_num = restaurant_index + 1
+        folder_name = "{}. {}".format(restaurant_num, name)
+        os.makedirs(folder_name, exist_ok=True)
+        restaurant_details = f'{folder_name}/Restaurant Details'
+        restaurant_images = f'{folder_name}/Restaurant Images'
+        restaurant_info = ("Rating: " + rating + "\nNumber of Reviews: " + num_reviews + "\nA few reviews:\n" + ",\n".join(reviews) + 
+        "\nCost: " + price + "\nType of restaurant: " + restaurant_type + "\n" + service_options + "\n" + address + "\n" + menu + "\n" + phone_number)
+        with open(restaurant_details, "w") as restaurant_details_file:
+            restaurant_details_file.write(restaurant_info)
+        for image_url in image_urls:
+            # opens and identifies the given image from the url
+            image = Image.open(get(image_url, stream=True).raw)
+            with open(restaurant_images, "wb") as restaurant_images_file:
+                restaurant_images_file.write(image)
