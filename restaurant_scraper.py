@@ -48,7 +48,7 @@ def get_restaurant_images_urls(driver):
     for image_index in range(6):
         image = driver.find_elements_by_class_name("vwrQge")[image_index].get_attribute("style")
         # format the image url correctly
-        image_url = replace_all(image, {'background-image: url(': '', ');': ''})
+        image_url = replace_all(image, {'background-image: url(\"': '', '\");': ''})
         restaurant_images.append(image_url)
     return restaurant_images    
 
@@ -75,20 +75,21 @@ if __name__ == "__main__":
     driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get(URL)
 
-    for restaurant_index in range(2):
+    for restaurant_index in range(1):
         name, rating = get_restaurant_name_and_rating(restaurant_index, driver)
         num_reviews, reviews, image_urls, price, restaurant_type, service_options, address, menu, phone_number = get_miscellaneous(restaurant_index, driver)
         restaurant_num = restaurant_index + 1
         folder_name = "{}. {}".format(restaurant_num, name)
         os.makedirs(folder_name, exist_ok=True)
         restaurant_details = f'{folder_name}/Restaurant Details'
-        restaurant_images = f'{folder_name}/Restaurant Images'
         restaurant_info = ("Rating: " + rating + "\nNumber of Reviews: " + num_reviews + "\nA few reviews:\n" + ",\n".join(reviews) + 
         "\nCost: " + price + "\nType of restaurant: " + restaurant_type + "\n" + service_options + "\n" + address + "\n" + menu + "\n" + phone_number)
         with open(restaurant_details, "w") as restaurant_details_file:
             restaurant_details_file.write(restaurant_info)
-        for image_url in image_urls:
-            # opens and identifies the given image from the url
-            image = Image.open(get(image_url, stream=True).raw)
+        for i in range(len(image_urls)):
+            # I was using Image.open() and then image.show() with the Pillow imaging library but it just spams computer with image files
+            # image = Image.open(get(image_urls[i], stream=True).raw)
+            # image.show()
+            restaurant_images = f'{folder_name}/Restaurant Image {i + 1}'
             with open(restaurant_images, "wb") as restaurant_images_file:
-                restaurant_images_file.write(image)
+                restaurant_images_file.write(get(image_urls[i]).content)
