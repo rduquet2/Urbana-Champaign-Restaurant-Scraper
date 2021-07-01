@@ -75,7 +75,7 @@ if __name__ == "__main__":
     driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get(URL)
 
-    for restaurant_index in range(1):
+    for restaurant_index in range(20):
         name, rating = get_restaurant_name_and_rating(restaurant_index, driver)
         num_reviews, reviews, image_urls, price, restaurant_type, service_options, address, menu, phone_number = get_miscellaneous(restaurant_index, driver)
         restaurant_num = restaurant_index + 1
